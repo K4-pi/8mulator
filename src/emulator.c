@@ -1,5 +1,10 @@
 #include "emulator.h"
 
+#include "SDL3/SDL.h"
+
+#include <SDL3/SDL_init.h>
+#include <SDL3/SDL_oldnames.h>
+#include <SDL3/SDL_video.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -63,6 +68,8 @@ uint16_t *stack_pointer = stack;
 
 uint16_t program_counter = 0x200;  // 512 == 0x200
 
+SDL_Renderer* renderer;
+
 void emu_load_file(const char *filename)
 {
     FILE *f;
@@ -86,8 +93,39 @@ void emu_load_file(const char *filename)
 
 void emulate()
 {
-    while (program_counter < MEMORY_SIZE)
+    if (!SDL_Init(SDL_INIT_VIDEO))
     {
+        SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Failed to init SDL3: %s\n", SDL_GetError());
+        exit(EXIT_FAILURE);
+    }
+
+    SDL_Window *window = SDL_CreateWindow("8mulator", 480, 360, 0);
+    if (!window)
+    {
+        SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Window Creation Failed: %s\n", SDL_GetError());
+        SDL_Quit();
+        exit(EXIT_FAILURE);
+    }
+
+    renderer = SDL_CreateRenderer(window, NULL);
+    if (!renderer)
+    {
+        SDL_DestroyWindow(window);
+        SDL_Quit();
+    }
+
+    bool is_running = true;
+    SDL_Event event;
+
+    while (is_running) {
+        while (SDL_PollEvent(&event))
+        {
+            if (event.type == SDL_EVENT_QUIT)
+            {
+                is_running = false;
+            }
+        }
+
         uint8_t left_byte = memory[program_counter];
         uint8_t right_byte = memory[program_counter + 1];
 
@@ -99,17 +137,28 @@ void emulate()
         printf("opcode = %04X\n\n", opcode);
 
         opcodes_array[(opcode & 0xF000) >> 12](opcode);
+
+        SDL_RenderPresent(renderer);
     }
+
+    SDL_DestroyRenderer(renderer);
+    SDL_DestroyWindow(window);
+    SDL_Quit();
 }
 
 static void opcode_0xxx(uint16_t opcode)
 {
     switch (opcode)
     {
-        case 0x00E0: break;  // CLS
+        case 0x00E0:
+            SDL_SetRenderDrawColor(renderer, 20, 40, 80, 255);
+            SDL_RenderClear(renderer);
+            break;  // CLS
+
         case 0x00EE:  // RET
             program_counter = POP_STACK(stack_pointer);
             break;
+
         default:
             printf("opcode: %04X not supported\n", opcode);
             exit(EXIT_FAILURE);
