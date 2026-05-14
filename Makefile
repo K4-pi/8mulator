@@ -2,4 +2,4 @@
 all: compile
 
 compile:
-	gcc main.c -o main src/* -Wall
+	gcc main.c -o main src/* -Wall -O2

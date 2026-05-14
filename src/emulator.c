@@ -110,7 +110,7 @@ static void opcode_0xxx(uint16_t opcode)
         case 0x00EE: break;  // RET
         default:
             printf("opcode: %04X not supported\n", opcode);
-            break;
+            exit(EXIT_FAILURE);
     }
 }
 
@@ -172,52 +172,115 @@ static void opcode_7xxx(uint16_t opcode) // ADD Vx = Vx + kk
     uint8_t Vx = GET_VX(opcode);
 
     V[Vx] += GET_KK(opcode);
+
+    program_counter += 2;
 }
 
 static void opcode_8xxx(uint16_t opcode)
 {
-    // LD, OR, AND ...
+    uint8_t Vx = GET_VX(opcode);
+    uint8_t Vy = GET_VY(opcode);
 
+    switch (opcode & 0xF00F)
+    {
+        case 0x8000:  // Vx = Vy
+            V[Vx] = V[Vy];
+            break;
+
+        case 0x8001:  // Vx = Vx OR Vy
+            V[Vx] |= V[Vy];
+            break;
+
+        case 0x8002:  // Vx = Vx AND Vy
+            V[Vx] &= V[Vy];
+            break;
+
+        case 0x8003:  // Vx = Vx XOR Vy
+            V[Vx] ^= V[Vy];
+            break;
+
+        case 0x8004:  // Vx = Vx + Vy, set VF = carry
+            if ((V[Vx] += V[Vy]) > 0xFF) V[0xF] = 1;
+            else V[0xF] = 0;
+            break;
+
+        case 0x8005:  // Vx = Vx - Vy, set VF = NOT borrow.
+            if (V[Vx] > V[Vy]) V[0xF] = 1;
+            else V[0xF] = 0;
+            V[Vx] -= V[Vy];
+            break;
+
+        case 0x8006:  // Vx = Vx SHR 1.
+            if (V[Vx] & 0x1) V[0xF] = 1;
+            else V[0xF] = 0;
+            V[Vx] /= 2;
+            break;
+
+        case 0x8007:  // Vx = Vy - Vx, set VF = NOT borrow
+            if (V[Vy] > V[Vx]) V[0xF] = 1;
+            else V[0xF] = 0;
+            V[Vx] = V[Vy] - V[Vx];
+            break;
+
+        case 0x800E:  // Vx = Vx SHL 1
+            if (V[Vx] & 0x10) V[0xF] = 1;
+            else V[0xF] = 0;
+            V[Vx] *= 2;
+            break;
+
+        default:
+            printf("opcode: %04X not supported\n", opcode);
+            exit(EXIT_FAILURE);
+    }
+
+    program_counter += 2;
 }
 
-static void opcode_9xxx(uint16_t opcode)
+static void opcode_9xxx(uint16_t opcode) // SNE Vx, Vy
 {
-    // SNE
+    if ((opcode & 0xF00F) == 0x9000)
+    {
+        uint8_t Vx = GET_VX(opcode);
+        uint8_t Vy = GET_VY(opcode);
 
+        if (V[Vx] != V[Vy]) program_counter += 4;
+        else program_counter += 2;
+    }
+    else
+    {
+        printf("opcode: %04X not supported\n", opcode);
+        exit(EXIT_FAILURE);
+    }
 }
 
-static void opcode_Axxx(uint16_t opcode)
+static void opcode_Axxx(uint16_t opcode) // I = nnn
 {
-    // LD I
+    I = GET_NNN(opcode);
 
+    program_counter += 2;
 }
 
-static void opcode_Bxxx(uint16_t opcode)
+static void opcode_Bxxx(uint16_t opcode) // JP V0, addr
 {
-    // JP V0
-
+    program_counter = V[0] + GET_NNN(opcode);
 }
 
-static void opcode_Cxxx(uint16_t opcode)
+static void opcode_Cxxx(uint16_t opcode) // Vx = random byte AND kk
 {
     // RND
-
 }
 
-static void opcode_Dxxx(uint16_t opcode)
+static void opcode_Dxxx(uint16_t opcode) // DRW Vx, Vy, nibble
 {
     // DRW -> draw
-
 }
 
 static void opcode_Exxx(uint16_t opcode)
 {
     // SKP -> skip
-
 }
 
 static void opcode_Fxxx(uint16_t opcode)
 {
-    // LD DT
 
 }
