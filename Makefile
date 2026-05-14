@@ -2,4 +2,4 @@
 all: compile
 
 compile:
-	gcc main.c -o main src/* -Wall -O2
+	gcc main.c -o 8mulator src/* -Wall -O2
