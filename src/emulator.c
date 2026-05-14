@@ -107,11 +107,15 @@ static void opcode_0xxx(uint16_t opcode)
     switch (opcode)
     {
         case 0x00E0: break;  // CLS
-        case 0x00EE: break;  // RET
+        case 0x00EE:  // RET
+            program_counter = POP_STACK(stack_pointer);
+            break;
         default:
             printf("opcode: %04X not supported\n", opcode);
             exit(EXIT_FAILURE);
     }
+
+    program_counter += 2;
 }
 
 static void opcode_1xxx(uint16_t opcode) // JUMP
