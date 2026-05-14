@@ -6,6 +6,44 @@
 
 #define MEMORY_SIZE 4096  // 4096 == 0xFFF
 
+typedef void (*OpcodeHandler)(uint16_t);
+
+static OpcodeHandler opcode_0xxx(uint16_t opcode);
+static OpcodeHandler opcode_1xxx(uint16_t opcode);
+static OpcodeHandler opcode_2xxx(uint16_t opcode);
+static OpcodeHandler opcode_3xxx(uint16_t opcode);
+static OpcodeHandler opcode_4xxx(uint16_t opcode);
+static OpcodeHandler opcode_5xxx(uint16_t opcode);
+static OpcodeHandler opcode_6xxx(uint16_t opcode);
+static OpcodeHandler opcode_7xxx(uint16_t opcode);
+static OpcodeHandler opcode_8xxx(uint16_t opcode);
+static OpcodeHandler opcode_9xxx(uint16_t opcode);
+static OpcodeHandler opcode_Axxx(uint16_t opcode);
+static OpcodeHandler opcode_Bxxx(uint16_t opcode);
+static OpcodeHandler opcode_Cxxx(uint16_t opcode);
+static OpcodeHandler opcode_Dxxx(uint16_t opcode);
+static OpcodeHandler opcode_Exxx(uint16_t opcode);
+static OpcodeHandler opcode_Fxxx(uint16_t opcode);
+
+static OpcodeHandler opcodes_array[16] = {
+    (OpcodeHandler)opcode_0xxx,
+    (OpcodeHandler)opcode_1xxx,
+    (OpcodeHandler)opcode_2xxx,
+    (OpcodeHandler)opcode_3xxx,
+    (OpcodeHandler)opcode_4xxx,
+    (OpcodeHandler)opcode_5xxx,
+    (OpcodeHandler)opcode_6xxx,
+    (OpcodeHandler)opcode_7xxx,
+    (OpcodeHandler)opcode_8xxx,
+    (OpcodeHandler)opcode_9xxx,
+    (OpcodeHandler)opcode_Axxx,
+    (OpcodeHandler)opcode_Bxxx,
+    (OpcodeHandler)opcode_Cxxx,
+    (OpcodeHandler)opcode_Dxxx,
+    (OpcodeHandler)opcode_Exxx,
+    (OpcodeHandler)opcode_Fxxx
+};
+
 uint16_t I;
 uint8_t V[16] = { 0 };  // Registers in 8-chip architecture
 
@@ -47,44 +85,109 @@ void emulate()
 
     printf("opcode = %04X\n\n", opcode);
 
+    opcodes_array[(opcode & 0xF000) >> 12](opcode);
+}
+
+static OpcodeHandler opcode_0xxx(uint16_t opcode)
+{
     switch (opcode)
     {
-        case 0x00E0:  // CLS
-            break;
-
-        case 0x00EE:  // RET
-            break;
-
-        case 0x00FB:  // SCR
-            break;
-
-        case 0x00FC:  // SCL
-            break;
-
-        case 0x00FD:  // EXIT
-            exit(EXIT_SUCCESS);
-            break;
-
-        case 0x00FE:  // LOW
-            break;
-
-        case 0x00FF:  // HIGH
-            break;
-
+        case 0x00E0: break;  // CLS
+        case 0x00EE: break;  // RET
         default:
-            switch (opcode & 0xF000)
-            {
-                case 0x8000:
-                    // ADD, AND, XOR
-                    program_counter += 2;
-                    break;
-
-                default:
-                    printf("opcode: %04X not supported", opcode & 0xF000);
-                    exit(EXIT_FAILURE);
-            }
+            printf("opcode: %04X not supported\n", opcode);
             break;
     }
 
+    return (OpcodeHandler)0;
+}
 
+static OpcodeHandler opcode_1xxx(uint16_t opcode)
+{
+    // JP
+    return (OpcodeHandler)0;
+}
+
+static OpcodeHandler opcode_2xxx(uint16_t opcode)
+{
+    // CALL
+    return (OpcodeHandler)0;
+}
+
+static OpcodeHandler opcode_3xxx(uint16_t opcode)
+{
+    // SE skip next instruction
+    return (OpcodeHandler)0;
+}
+
+static OpcodeHandler opcode_4xxx(uint16_t opcode)
+{
+    // SNE
+    return (OpcodeHandler)0;
+}
+
+static OpcodeHandler opcode_5xxx(uint16_t opcode)
+{
+    // SE
+    return (OpcodeHandler)0;
+}
+
+static OpcodeHandler opcode_6xxx(uint16_t opcode)
+{
+    // LD
+    return (OpcodeHandler)0;
+}
+
+static OpcodeHandler opcode_7xxx(uint16_t opcode)
+{
+    // LD
+    return (OpcodeHandler)0;
+}
+
+static OpcodeHandler opcode_8xxx(uint16_t opcode)
+{
+    // LD, OR, AND ...
+    return (OpcodeHandler)0;
+}
+
+static OpcodeHandler opcode_9xxx(uint16_t opcode)
+{
+    // SNE
+    return (OpcodeHandler)0;
+}
+
+static OpcodeHandler opcode_Axxx(uint16_t opcode)
+{
+    // LD I
+    return (OpcodeHandler)0;
+}
+
+static OpcodeHandler opcode_Bxxx(uint16_t opcode)
+{
+    // JP V0
+    return (OpcodeHandler)0;
+}
+
+static OpcodeHandler opcode_Cxxx(uint16_t opcode)
+{
+    // RND
+    return (OpcodeHandler)0;
+}
+
+static OpcodeHandler opcode_Dxxx(uint16_t opcode)
+{
+    // DRW -> draw
+    return (OpcodeHandler)0;
+}
+
+static OpcodeHandler opcode_Exxx(uint16_t opcode)
+{
+    // SKP -> skip
+    return (OpcodeHandler)0;
+}
+
+static OpcodeHandler opcode_Fxxx(uint16_t opcode)
+{
+    // LD DT
+    return (OpcodeHandler)0;
 }
