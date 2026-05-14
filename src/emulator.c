@@ -17,7 +17,7 @@ uint16_t program_counter = 0x200;  // 512 == 0x200
 void emu_load_file(const char *filename)
 {
     FILE *f;
-    if ((f = fopen(filename, "r")) == NULL)
+    if ((f = fopen(filename, "rb")) == NULL)
     {
         perror("Faild to open file");
         exit(EXIT_FAILURE);
@@ -31,6 +31,8 @@ void emu_load_file(const char *filename)
         memory[index] = b;
         index++;
     }
+
+    fclose(f);
 }
 
 void emulate()
@@ -45,15 +47,44 @@ void emulate()
 
     printf("opcode = %04X\n\n", opcode);
 
-    switch (opcode & 0xF000)
+    switch (opcode)
     {
-        case 0x8000:
-            // ADD, AND, XOR
-            program_counter += 2;
+        case 0x00E0:  // CLS
+            break;
+
+        case 0x00EE:  // RET
+            break;
+
+        case 0x00FB:  // SCR
+            break;
+
+        case 0x00FC:  // SCL
+            break;
+
+        case 0x00FD:  // EXIT
+            exit(EXIT_SUCCESS);
+            break;
+
+        case 0x00FE:  // LOW
+            break;
+
+        case 0x00FF:  // HIGH
             break;
 
         default:
-            printf("opcode: %04X not supported", opcode & 0xF000);
-            exit(EXIT_FAILURE);
+            switch (opcode & 0xF000)
+            {
+                case 0x8000:
+                    // ADD, AND, XOR
+                    program_counter += 2;
+                    break;
+
+                default:
+                    printf("opcode: %04X not supported", opcode & 0xF000);
+                    exit(EXIT_FAILURE);
+            }
+            break;
     }
+
+
 }
