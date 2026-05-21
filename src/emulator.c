@@ -4,12 +4,17 @@
 
 #include <SDL3/SDL_init.h>
 #include <SDL3/SDL_oldnames.h>
+#include <SDL3/SDL_timer.h>
 #include <SDL3/SDL_video.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 #include <sys/types.h>
 
+#include <unistd.h>
+
+#define GET_N(x)   (x & 0xF)
 #define GET_NNN(x) (x & 0x0FFF)
 #define GET_VX(x)  ((x & 0x0F00) >> 8)
 #define GET_VY(x)  ((x & 0x00F0) >> 4)
@@ -58,13 +63,15 @@ static OpcodeHandler opcodes_array[16] = {
     opcode_Fxxx
 };
 
-uint16_t I;
+uint16_t I = 0;
 uint8_t V[16] = { 0 };  // Registers in 8-chip architecture
 
 uint8_t memory[MEMORY_SIZE] = { 0 };
 
 uint16_t stack[64];
 uint16_t *stack_pointer = stack;
+
+uint8_t screen_buffer[64 * 32] = { 0 };
 
 uint16_t program_counter = 0x200;  // 512 == 0x200
 
@@ -99,7 +106,7 @@ void emulate()
         exit(EXIT_FAILURE);
     }
 
-    SDL_Window *window = SDL_CreateWindow("8mulator", 480, 360, 0);
+    SDL_Window *window = SDL_CreateWindow("8mulator", 640, 320, 0);
     if (!window)
     {
         SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Window Creation Failed: %s\n", SDL_GetError());
@@ -117,7 +124,10 @@ void emulate()
     bool is_running = true;
     SDL_Event event;
 
-    while (is_running) {
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // Black background
+
+    while (is_running)
+    {
         while (SDL_PollEvent(&event))
         {
             if (event.type == SDL_EVENT_QUIT)
@@ -129,16 +139,30 @@ void emulate()
         uint8_t left_byte = memory[program_counter];
         uint8_t right_byte = memory[program_counter + 1];
 
-        printf("left = %02X\n", left_byte);
-        printf("right = %02X\n", right_byte);
-
         uint16_t opcode = right_byte | (left_byte << 8);  // shift by 1 byte
 
-        printf("opcode = %04X\n\n", opcode);
+        printf("opcode = %04X\n", opcode);
 
         opcodes_array[(opcode & 0xF000) >> 12](opcode);
 
         SDL_RenderPresent(renderer);
+
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255); // White pixels
+
+        int scale = 5;
+
+        for (int i = 0; i < 64 * 32; i++)
+        {
+            if (screen_buffer[i])
+            {
+                int x = (i % 64) * scale;  // wrap around screen
+                int y = (i / 64) * scale;
+
+                SDL_FRect rect = {(float)x, (float)y, (float)scale, (float)scale};
+                SDL_RenderFillRect(renderer, &rect);
+            }
+        }
+        SDL_Delay(50);
     }
 
     SDL_DestroyRenderer(renderer);
@@ -151,8 +175,12 @@ static void opcode_0xxx(uint16_t opcode)
     switch (opcode)
     {
         case 0x00E0:
-            SDL_SetRenderDrawColor(renderer, 20, 40, 80, 255);
+            SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // Black
             SDL_RenderClear(renderer);
+            for (int i = 0; i < 64 * 32; i++)
+            {
+                screen_buffer[i] = 0;
+            }
             break;  // CLS
 
         case 0x00EE:  // RET
@@ -169,7 +197,7 @@ static void opcode_0xxx(uint16_t opcode)
 
 static void opcode_1xxx(uint16_t opcode) // JUMP
 {
-    program_counter = GET_NNN(opcode);
+    program_counter = GET_NNN(opcode) + 2;
 }
 
 static void opcode_2xxx(uint16_t opcode) // CALL
@@ -320,20 +348,56 @@ static void opcode_Bxxx(uint16_t opcode) // JP V0, addr
 
 static void opcode_Cxxx(uint16_t opcode) // Vx = random byte AND kk
 {
-    // RND
+    srand(time(0));
+
+    uint8_t Vx = GET_VX(opcode);
+    V[Vx] = (rand() % 255 + 1) & GET_KK(opcode);
+
+    program_counter += 2;
 }
 
 static void opcode_Dxxx(uint16_t opcode) // DRW Vx, Vy, nibble
 {
-    // DRW -> draw
+    uint8_t vx = V[GET_VX(opcode)];
+    uint8_t vy = V[GET_VY(opcode)];
+    uint8_t len = GET_N(opcode);
+
+    V[0xF] = 0; // Reset collision flag
+
+    for (int row = 0; row < len; row++)
+    {
+
+        uint8_t sprite_byte = memory[I + row];
+
+        for (int col = 0; col < 8; col++)
+        {
+            // Check if the current bit is set
+            if ((sprite_byte & (0x80 >> col)))
+            {
+                int x = (vx + col) % 64;
+                int y = (vy + row) % 32;
+                int index = y * 64 + x;
+
+                if (screen_buffer[index]) // Check collision if pixel already 1
+                {
+                    V[0xF] = 1;
+                }
+
+                screen_buffer[index] ^= 1;
+            }
+        }
+    }
+    program_counter += 2;
 }
 
 static void opcode_Exxx(uint16_t opcode)
 {
     // SKP -> skip
+    program_counter += 2;
 }
 
 static void opcode_Fxxx(uint16_t opcode)
 {
-
+    // SKNP
+    program_counter += 2;
 }
