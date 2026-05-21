@@ -6,6 +6,7 @@
 #include <SDL3/SDL_oldnames.h>
 #include <SDL3/SDL_timer.h>
 #include <SDL3/SDL_video.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -65,6 +66,9 @@ static OpcodeHandler opcodes_array[16] = {
 
 uint16_t I = 0;
 uint8_t V[16] = { 0 };  // Registers in 8-chip architecture
+
+uint8_t DelayTimer = 0;
+uint8_t SoundTimer = 0;
 
 uint8_t memory[MEMORY_SIZE] = { 0 };
 
@@ -358,27 +362,25 @@ static void opcode_Cxxx(uint16_t opcode) // Vx = random byte AND kk
 
 static void opcode_Dxxx(uint16_t opcode) // DRW Vx, Vy, nibble
 {
-    uint8_t vx = V[GET_VX(opcode)];
-    uint8_t vy = V[GET_VY(opcode)];
+    uint8_t Vx = V[GET_VX(opcode)];
+    uint8_t Vy = V[GET_VY(opcode)];
     uint8_t len = GET_N(opcode);
 
     V[0xF] = 0; // Reset collision flag
 
     for (int row = 0; row < len; row++)
     {
-
         uint8_t sprite_byte = memory[I + row];
 
-        for (int col = 0; col < 8; col++)
+        for (int col = 0; col < 8; col++)  // check bytes in sprite
         {
-            // Check if the current bit is set
             if ((sprite_byte & (0x80 >> col)))
             {
-                int x = (vx + col) % 64;
-                int y = (vy + row) % 32;
+                int x = (Vx + col) % 64;
+                int y = (Vy + row) % 32;
                 int index = y * 64 + x;
 
-                if (screen_buffer[index]) // Check collision if pixel already 1
+                if (screen_buffer[index])  // Check collision if pixel already 1
                 {
                     V[0xF] = 1;
                 }
@@ -392,12 +394,81 @@ static void opcode_Dxxx(uint16_t opcode) // DRW Vx, Vy, nibble
 
 static void opcode_Exxx(uint16_t opcode)
 {
-    // SKP -> skip
+    switch (opcode & 0xF0FF)
+    {
+        case 0xE09E:
+            break;
+
+        case 0xE0A1:
+            break;
+
+        default:
+            printf("opcode: %04X not supported\n", opcode);
+            exit(EXIT_FAILURE);
+    }
+
     program_counter += 2;
 }
 
 static void opcode_Fxxx(uint16_t opcode)
 {
-    // SKNP
+    uint8_t Vx = V[GET_VX(opcode)];
+
+    uint16_t offset = I;
+
+    switch (opcode & 0xF0FF)
+    {
+        case 0xF007:
+            memory[Vx] = DelayTimer;
+            break;
+
+        case 0xF00A:
+            break;
+
+        case 0xF015:
+            DelayTimer = memory[Vx];
+            break;
+
+        case 0xF018:
+            SoundTimer = memory[Vx];
+            break;
+
+        case 0xF01E:
+            I += memory[Vx];
+            break;
+
+        case 0xF029:
+            break;
+
+        case 0xF033:
+            uint16_t ones     = Vx % 10;                    // 243 % 10 = 3
+            uint16_t tens     = (Vx % 100) - ones;          // 243 % 100 = 43 - ones = 40
+            uint16_t hundreds = (Vx % 1000) - ones - tens;  // 243 % 1000 = 243 - (ones + tens) = 200
+
+            memory[I]   = ones;
+            memory[I+1] = tens;
+            memory[I+2] = hundreds;
+            break;
+
+        case 0xF055:
+            for (size_t index = 0; index <= Vx; index++)
+            {
+                memory[offset] = V[index];
+                offset++;
+            }
+            break;
+
+        case 0xF065:
+            for (size_t index = 0; index <= Vx; index++)
+            {
+                V[index] = memory[offset];
+                offset++;
+            }
+            break;
+
+        default:
+            break;
+    }
+
     program_counter += 2;
 }
