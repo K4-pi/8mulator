@@ -34,6 +34,8 @@
 typedef void (*OpcodeHandler)(uint16_t);
 
 bool is_key_pressed(uint16_t key);
+int map_sdl_key_to_chip8(SDL_Keycode keycode);
+void set_key_state(uint8_t key, bool is_pressed);
 
 void opcode_0xxx(uint16_t opcode);
 void opcode_1xxx(uint16_t opcode);
@@ -90,6 +92,83 @@ struct keys_t keys = { 0 };
 
 SDL_Renderer* renderer;
 SDL_Event event;
+
+int map_sdl_key_to_chip8(SDL_Keycode keycode)
+{
+    switch (keycode)
+    {
+        // Common CHIP-8 keyboard layout:
+        // 1 2 3 4
+        // Q W E R
+        // A S D F
+        // Z X C V
+        case SDLK_1: return 0x1;
+        case SDLK_2: return 0x2;
+        case SDLK_3: return 0x3;
+        case SDLK_4: return 0xC;
+        case SDLK_Q: return 0x4;
+        case SDLK_W: return 0x5;
+        case SDLK_E: return 0x6;
+        case SDLK_R: return 0xD;
+        case SDLK_A: return 0x7;
+        case SDLK_S: return 0x8;
+        case SDLK_D: return 0x9;
+        case SDLK_F: return 0xE;
+        case SDLK_Z: return 0xA;
+        case SDLK_X: return 0x0;
+        case SDLK_C: return 0xB;
+        case SDLK_V: return 0xF;
+        default: return -1;
+    }
+}
+
+void set_key_state(uint8_t key, bool is_pressed)
+{
+    switch (key)
+    {
+        case 0x0: keys.key_0 = is_pressed; break;
+        case 0x1: keys.key_1 = is_pressed; break;
+        case 0x2: keys.key_2 = is_pressed; break;
+        case 0x3: keys.key_3 = is_pressed; break;
+        case 0x4: keys.key_4 = is_pressed; break;
+        case 0x5: keys.key_5 = is_pressed; break;
+        case 0x6: keys.key_6 = is_pressed; break;
+        case 0x7: keys.key_7 = is_pressed; break;
+        case 0x8: keys.key_8 = is_pressed; break;
+        case 0x9: keys.key_9 = is_pressed; break;
+        case 0xA: keys.key_A = is_pressed; break;
+        case 0xB: keys.key_B = is_pressed; break;
+        case 0xC: keys.key_C = is_pressed; break;
+        case 0xD: keys.key_D = is_pressed; break;
+        case 0xE: keys.key_E = is_pressed; break;
+        case 0xF: keys.key_F = is_pressed; break;
+        default: break;
+    }
+}
+
+bool is_key_pressed(uint16_t key)
+{
+    switch (key)
+    {
+        case 0x0: return keys.key_0;
+        case 0x1: return keys.key_1;
+        case 0x2: return keys.key_2;
+        case 0x3: return keys.key_3;
+        case 0x4: return keys.key_4;
+        case 0x5: return keys.key_5;
+        case 0x6: return keys.key_6;
+        case 0x7: return keys.key_7;
+        case 0x8: return keys.key_8;
+        case 0x9: return keys.key_9;
+        case 0xA: return keys.key_A;
+        case 0xB: return keys.key_B;
+        case 0xC: return keys.key_C;
+        case 0xD: return keys.key_D;
+        case 0xE: return keys.key_E;
+        case 0xF: return keys.key_F;
+        default: return false;
+    }
+}
 
 void emu_load_file(const char *filename)
 {
@@ -150,48 +229,18 @@ void emulate()
 
             if (event.type == SDL_EVENT_KEY_DOWN)
             {
-                switch (event.key.key)
+                int chip8_key = map_sdl_key_to_chip8(event.key.key);
+                if (chip8_key != -1)
                 {
-                    case SDLK_0: keys.key_0 = true; break;
-                    case SDLK_1: keys.key_0 = true; break;
-                    case SDLK_2: keys.key_0 = true; break;
-                    case SDLK_3: keys.key_0 = true; break;
-                    case SDLK_4: keys.key_0 = true; break;
-                    case SDLK_5: keys.key_0 = true; break;
-                    case SDLK_6: keys.key_0 = true; break;
-                    case SDLK_7: keys.key_0 = true; break;
-                    case SDLK_8: keys.key_0 = true; break;
-                    case SDLK_9: keys.key_0 = true; break;
-                    case SDLK_A: keys.key_0 = true; break;
-                    case SDLK_B: keys.key_0 = true; break;
-                    case SDLK_C: keys.key_0 = true; break;
-                    case SDLK_D: keys.key_0 = true; break;
-                    case SDLK_E: keys.key_0 = true; break;
-                    case SDLK_F: keys.key_0 = true; break;
-                    default: printf("Key not supported\n");
+                    set_key_state((uint8_t)chip8_key, true);
                 }
             }
             if (event.type == SDL_EVENT_KEY_UP)
             {
-                switch (event.key.key)
+                int chip8_key = map_sdl_key_to_chip8(event.key.key);
+                if (chip8_key != -1)
                 {
-                    case SDLK_0: keys.key_0 = false; break;
-                    case SDLK_1: keys.key_0 = false; break;
-                    case SDLK_2: keys.key_0 = false; break;
-                    case SDLK_3: keys.key_0 = false; break;
-                    case SDLK_4: keys.key_0 = false; break;
-                    case SDLK_5: keys.key_0 = false; break;
-                    case SDLK_6: keys.key_0 = false; break;
-                    case SDLK_7: keys.key_0 = false; break;
-                    case SDLK_8: keys.key_0 = false; break;
-                    case SDLK_9: keys.key_0 = false; break;
-                    case SDLK_A: keys.key_0 = false; break;
-                    case SDLK_B: keys.key_0 = false; break;
-                    case SDLK_C: keys.key_0 = false; break;
-                    case SDLK_D: keys.key_0 = false; break;
-                    case SDLK_E: keys.key_0 = false; break;
-                    case SDLK_F: keys.key_0 = false; break;
-                    default: printf("Key not supported\n");
+                    set_key_state((uint8_t)chip8_key, false);
                 }
             }
         }
@@ -222,36 +271,15 @@ void emulate()
                 SDL_RenderFillRect(renderer, &rect);
             }
         }
-        SDL_Delay(50);
+        if (DelayTimer > 0) DelayTimer--;
+        if (SoundTimer > 0) SoundTimer--;
+
+        SDL_Delay(20);
     }
 
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();
-}
-
-bool is_key_pressed(uint16_t key)
-{
-    switch (key)
-    {
-        case 0x0: return keys.key_0;
-        case 0x1: return keys.key_1;
-        case 0x2: return keys.key_2;
-        case 0x3: return keys.key_3;
-        case 0x4: return keys.key_4;
-        case 0x5: return keys.key_5;
-        case 0x6: return keys.key_6;
-        case 0x7: return keys.key_7;
-        case 0x8: return keys.key_8;
-        case 0x9: return keys.key_9;
-        case 0xA: return keys.key_A;
-        case 0xB: return keys.key_B;
-        case 0xC: return keys.key_C;
-        case 0xD: return keys.key_D;
-        case 0xE: return keys.key_E;
-        case 0xF: return keys.key_F;
-        default: return false;
-    }
 }
 
 void opcode_0xxx(uint16_t opcode)
@@ -477,11 +505,11 @@ void opcode_Exxx(uint16_t opcode)
     switch (opcode & 0xF0FF)
     {
         case 0xE09E:
-            if (is_key_pressed(GET_VX(opcode))) program_counter += 2;
+            if (is_key_pressed(V[GET_VX(opcode)])) program_counter += 2;
             break;
 
         case 0xE0A1:
-            if (!is_key_pressed(GET_VX(opcode))) program_counter += 2;
+            if (!is_key_pressed(V[GET_VX(opcode)])) program_counter += 2;
             break;
 
         default:
@@ -494,14 +522,14 @@ void opcode_Exxx(uint16_t opcode)
 
 void opcode_Fxxx(uint16_t opcode)
 {
-    uint8_t Vx = V[GET_VX(opcode)];
+    uint8_t Vx = GET_VX(opcode);
 
     uint16_t offset = I;
 
     switch (opcode & 0xF0FF)
     {
         case 0xF007:
-            memory[Vx] = DelayTimer;
+            V[Vx] = DelayTimer;
             break;
 
         case 0xF00A:
@@ -513,23 +541,27 @@ void opcode_Fxxx(uint16_t opcode)
                 {
                     if (event.type == SDL_EVENT_KEY_DOWN)
                     {
-                        V[GET_VX(opcode)] = event.key.key;
-                        should_pause = false;
+                        int chip8_key = map_sdl_key_to_chip8(event.key.key);
+                        if (chip8_key != -1)
+                        {
+                            V[Vx] = (uint8_t)chip8_key;
+                            should_pause = false;
+                        }
                     }
                 }
             }
             break;
 
         case 0xF015:
-            DelayTimer = memory[Vx];
+            DelayTimer = V[Vx];
             break;
 
         case 0xF018:
-            SoundTimer = memory[Vx];
+            SoundTimer = V[Vx];
             break;
 
         case 0xF01E:
-            I += memory[Vx];
+            I += V[Vx];
             break;
 
         case 0xF029:
