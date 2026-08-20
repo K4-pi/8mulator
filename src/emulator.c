@@ -1,11 +1,16 @@
 #include "emulator.h"
+#include "keys.h"
 
 #include "SDL3/SDL.h"
 
+#include <SDL3/SDL_events.h>
 #include <SDL3/SDL_init.h>
+#include <SDL3/SDL_keycode.h>
 #include <SDL3/SDL_oldnames.h>
 #include <SDL3/SDL_timer.h>
 #include <SDL3/SDL_video.h>
+
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -28,24 +33,26 @@
 
 typedef void (*OpcodeHandler)(uint16_t);
 
-static void opcode_0xxx(uint16_t opcode);
-static void opcode_1xxx(uint16_t opcode);
-static void opcode_2xxx(uint16_t opcode);
-static void opcode_3xxx(uint16_t opcode);
-static void opcode_4xxx(uint16_t opcode);
-static void opcode_5xxx(uint16_t opcode);
-static void opcode_6xxx(uint16_t opcode);
-static void opcode_7xxx(uint16_t opcode);
-static void opcode_8xxx(uint16_t opcode);
-static void opcode_9xxx(uint16_t opcode);
-static void opcode_Axxx(uint16_t opcode);
-static void opcode_Bxxx(uint16_t opcode);
-static void opcode_Cxxx(uint16_t opcode);
-static void opcode_Dxxx(uint16_t opcode);
-static void opcode_Exxx(uint16_t opcode);
-static void opcode_Fxxx(uint16_t opcode);
+bool is_key_pressed(uint16_t key);
 
-static OpcodeHandler opcodes_array[16] = {
+void opcode_0xxx(uint16_t opcode);
+void opcode_1xxx(uint16_t opcode);
+void opcode_2xxx(uint16_t opcode);
+void opcode_3xxx(uint16_t opcode);
+void opcode_4xxx(uint16_t opcode);
+void opcode_5xxx(uint16_t opcode);
+void opcode_6xxx(uint16_t opcode);
+void opcode_7xxx(uint16_t opcode);
+void opcode_8xxx(uint16_t opcode);
+void opcode_9xxx(uint16_t opcode);
+void opcode_Axxx(uint16_t opcode);
+void opcode_Bxxx(uint16_t opcode);
+void opcode_Cxxx(uint16_t opcode);
+void opcode_Dxxx(uint16_t opcode);
+void opcode_Exxx(uint16_t opcode);
+void opcode_Fxxx(uint16_t opcode);
+
+OpcodeHandler opcodes_array[16] = {
     opcode_0xxx,
     opcode_1xxx,
     opcode_2xxx,
@@ -79,7 +86,10 @@ uint8_t screen_buffer[64 * 32] = { 0 };
 
 uint16_t program_counter = 0x200;  // 512 == 0x200
 
+struct keys_t keys = { 0 };
+
 SDL_Renderer* renderer;
+SDL_Event event;
 
 void emu_load_file(const char *filename)
 {
@@ -126,7 +136,6 @@ void emulate()
     }
 
     bool is_running = true;
-    SDL_Event event;
 
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // Black background
 
@@ -137,6 +146,53 @@ void emulate()
             if (event.type == SDL_EVENT_QUIT)
             {
                 is_running = false;
+            }
+
+            if (event.type == SDL_EVENT_KEY_DOWN)
+            {
+                switch (event.key.key)
+                {
+                    case SDLK_0: keys.key_0 = true; break;
+                    case SDLK_1: keys.key_0 = true; break;
+                    case SDLK_2: keys.key_0 = true; break;
+                    case SDLK_3: keys.key_0 = true; break;
+                    case SDLK_4: keys.key_0 = true; break;
+                    case SDLK_5: keys.key_0 = true; break;
+                    case SDLK_6: keys.key_0 = true; break;
+                    case SDLK_7: keys.key_0 = true; break;
+                    case SDLK_8: keys.key_0 = true; break;
+                    case SDLK_9: keys.key_0 = true; break;
+                    case SDLK_A: keys.key_0 = true; break;
+                    case SDLK_B: keys.key_0 = true; break;
+                    case SDLK_C: keys.key_0 = true; break;
+                    case SDLK_D: keys.key_0 = true; break;
+                    case SDLK_E: keys.key_0 = true; break;
+                    case SDLK_F: keys.key_0 = true; break;
+                    default: printf("Key not supported\n");
+                }
+            }
+            if (event.type == SDL_EVENT_KEY_UP)
+            {
+                switch (event.key.key)
+                {
+                    case SDLK_0: keys.key_0 = false; break;
+                    case SDLK_1: keys.key_0 = false; break;
+                    case SDLK_2: keys.key_0 = false; break;
+                    case SDLK_3: keys.key_0 = false; break;
+                    case SDLK_4: keys.key_0 = false; break;
+                    case SDLK_5: keys.key_0 = false; break;
+                    case SDLK_6: keys.key_0 = false; break;
+                    case SDLK_7: keys.key_0 = false; break;
+                    case SDLK_8: keys.key_0 = false; break;
+                    case SDLK_9: keys.key_0 = false; break;
+                    case SDLK_A: keys.key_0 = false; break;
+                    case SDLK_B: keys.key_0 = false; break;
+                    case SDLK_C: keys.key_0 = false; break;
+                    case SDLK_D: keys.key_0 = false; break;
+                    case SDLK_E: keys.key_0 = false; break;
+                    case SDLK_F: keys.key_0 = false; break;
+                    default: printf("Key not supported\n");
+                }
             }
         }
 
@@ -174,7 +230,31 @@ void emulate()
     SDL_Quit();
 }
 
-static void opcode_0xxx(uint16_t opcode)
+bool is_key_pressed(uint16_t key)
+{
+    switch (key)
+    {
+        case 0x0: return keys.key_0;
+        case 0x1: return keys.key_1;
+        case 0x2: return keys.key_2;
+        case 0x3: return keys.key_3;
+        case 0x4: return keys.key_4;
+        case 0x5: return keys.key_5;
+        case 0x6: return keys.key_6;
+        case 0x7: return keys.key_7;
+        case 0x8: return keys.key_8;
+        case 0x9: return keys.key_9;
+        case 0xA: return keys.key_A;
+        case 0xB: return keys.key_B;
+        case 0xC: return keys.key_C;
+        case 0xD: return keys.key_D;
+        case 0xE: return keys.key_E;
+        case 0xF: return keys.key_F;
+        default: return false;
+    }
+}
+
+void opcode_0xxx(uint16_t opcode)
 {
     switch (opcode)
     {
@@ -192,25 +272,25 @@ static void opcode_0xxx(uint16_t opcode)
             break;
 
         default:
-            printf("opcode: %04X not supported\n", opcode);
+            program_counter = GET_NNN(opcode);
             exit(EXIT_FAILURE);
     }
 
     program_counter += 2;
 }
 
-static void opcode_1xxx(uint16_t opcode) // JUMP
+void opcode_1xxx(uint16_t opcode) // JUMP
 {
-    program_counter = GET_NNN(opcode) + 2;
+    program_counter = GET_NNN(opcode);
 }
 
-static void opcode_2xxx(uint16_t opcode) // CALL
+void opcode_2xxx(uint16_t opcode) // CALL
 {
     PUSH_STACK(stack_pointer, program_counter);
     program_counter = GET_NNN(opcode);
 }
 
-static void opcode_3xxx(uint16_t opcode) // SE Vx == kk
+void opcode_3xxx(uint16_t opcode) // SE Vx == kk
 {
     uint8_t Vx = GET_VX(opcode);
 
@@ -218,7 +298,7 @@ static void opcode_3xxx(uint16_t opcode) // SE Vx == kk
     else program_counter += 2;
 }
 
-static void opcode_4xxx(uint16_t opcode) // SNE Vx != kk
+void opcode_4xxx(uint16_t opcode) // SNE Vx != kk
 {
     uint8_t Vx = GET_VX(opcode);
 
@@ -226,7 +306,7 @@ static void opcode_4xxx(uint16_t opcode) // SNE Vx != kk
     else program_counter += 2;
 }
 
-static void opcode_5xxx(uint16_t opcode) // SE Vx == Vy
+void opcode_5xxx(uint16_t opcode) // SE Vx == Vy
 {
     if ((opcode & 0xF00F) == 0x5000)
     {
@@ -238,12 +318,12 @@ static void opcode_5xxx(uint16_t opcode) // SE Vx == Vy
     }
     else
     {
-        printf("opcode: %04x not supported\n", opcode);
+        printf("opcode 5xxx: %04x not supported\n", opcode);
         exit(EXIT_FAILURE);
     }
 }
 
-static void opcode_6xxx(uint16_t opcode) // LD Vx = kk
+void opcode_6xxx(uint16_t opcode) // LD Vx = kk
 {
     uint8_t Vx = GET_VX(opcode);
 
@@ -252,7 +332,7 @@ static void opcode_6xxx(uint16_t opcode) // LD Vx = kk
     program_counter += 2;
 }
 
-static void opcode_7xxx(uint16_t opcode) // ADD Vx = Vx + kk
+void opcode_7xxx(uint16_t opcode) // ADD Vx = Vx + kk
 {
     uint8_t Vx = GET_VX(opcode);
 
@@ -261,7 +341,7 @@ static void opcode_7xxx(uint16_t opcode) // ADD Vx = Vx + kk
     program_counter += 2;
 }
 
-static void opcode_8xxx(uint16_t opcode)
+void opcode_8xxx(uint16_t opcode)
 {
     uint8_t Vx = GET_VX(opcode);
     uint8_t Vy = GET_VY(opcode);
@@ -314,14 +394,14 @@ static void opcode_8xxx(uint16_t opcode)
             break;
 
         default:
-            printf("opcode: %04X not supported\n", opcode);
+            printf("opcode 8xxx: %04X not supported\n", opcode);
             exit(EXIT_FAILURE);
     }
 
     program_counter += 2;
 }
 
-static void opcode_9xxx(uint16_t opcode) // SNE Vx, Vy
+void opcode_9xxx(uint16_t opcode) // SNE Vx, Vy
 {
     if ((opcode & 0xF00F) == 0x9000)
     {
@@ -333,24 +413,24 @@ static void opcode_9xxx(uint16_t opcode) // SNE Vx, Vy
     }
     else
     {
-        printf("opcode: %04X not supported\n", opcode);
+        printf("opcode 9xxx: %04X not supported\n", opcode);
         exit(EXIT_FAILURE);
     }
 }
 
-static void opcode_Axxx(uint16_t opcode) // I = nnn
+void opcode_Axxx(uint16_t opcode) // I = nnn
 {
     I = GET_NNN(opcode);
 
     program_counter += 2;
 }
 
-static void opcode_Bxxx(uint16_t opcode) // JP V0, addr
+void opcode_Bxxx(uint16_t opcode) // JP V0, addr
 {
     program_counter = V[0] + GET_NNN(opcode);
 }
 
-static void opcode_Cxxx(uint16_t opcode) // Vx = random byte AND kk
+void opcode_Cxxx(uint16_t opcode) // Vx = random byte AND kk
 {
     srand(time(0));
 
@@ -360,7 +440,7 @@ static void opcode_Cxxx(uint16_t opcode) // Vx = random byte AND kk
     program_counter += 2;
 }
 
-static void opcode_Dxxx(uint16_t opcode) // DRW Vx, Vy, nibble
+void opcode_Dxxx(uint16_t opcode) // DRW Vx, Vy, nibble
 {
     uint8_t Vx = V[GET_VX(opcode)];
     uint8_t Vy = V[GET_VY(opcode)];
@@ -392,25 +472,27 @@ static void opcode_Dxxx(uint16_t opcode) // DRW Vx, Vy, nibble
     program_counter += 2;
 }
 
-static void opcode_Exxx(uint16_t opcode)
+void opcode_Exxx(uint16_t opcode)
 {
     switch (opcode & 0xF0FF)
     {
         case 0xE09E:
+            if (is_key_pressed(GET_VX(opcode))) program_counter += 2;
             break;
 
         case 0xE0A1:
+            if (!is_key_pressed(GET_VX(opcode))) program_counter += 2;
             break;
 
         default:
-            printf("opcode: %04X not supported\n", opcode);
+            printf("opcode Exxx: %04X not supported\n", opcode);
             exit(EXIT_FAILURE);
     }
 
     program_counter += 2;
 }
 
-static void opcode_Fxxx(uint16_t opcode)
+void opcode_Fxxx(uint16_t opcode)
 {
     uint8_t Vx = V[GET_VX(opcode)];
 
@@ -423,6 +505,19 @@ static void opcode_Fxxx(uint16_t opcode)
             break;
 
         case 0xF00A:
+            bool should_pause = true;
+
+            while (should_pause)
+            {
+                while (SDL_PollEvent(&event))
+                {
+                    if (event.type == SDL_EVENT_KEY_DOWN)
+                    {
+                        V[GET_VX(opcode)] = event.key.key;
+                        should_pause = false;
+                    }
+                }
+            }
             break;
 
         case 0xF015:
@@ -467,6 +562,7 @@ static void opcode_Fxxx(uint16_t opcode)
             break;
 
         default:
+            printf("opcode Fxxx: %04X not supported\n", opcode);
             break;
     }
 
